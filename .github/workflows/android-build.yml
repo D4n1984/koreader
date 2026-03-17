@@ -1,0 +1,92 @@
+name: Android APK Build
+
+on:
+  push:
+    branches:
+      - widget
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+env:
+  GRADLE_OPTS: -Xmx4096m -Dorg.gradle.jvmargs="-Xmx4096m"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git describe
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: adopt
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Install NDK
+        run: |
+          sdkmanager "ndk;25.2.9519653" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Cache gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: gradle-${{ runner.os }}
+
+      - name: Build dependencies
+        run: |
+          make -C base/toolchain/build android-ndk
+        env:
+          ANDROID_NDK_HOME: ${{ android.ndk.path }}
+          ANDROID_SDK_ROOT: ${{ android.sdk.path }}
+
+      - name: Build APK (ARM)
+        run: |
+          make TARGET=android update
+        env:
+          ANDROID_NDK_HOME: ${{ android.ndk.path }}
+          ANDROID_SDK_ROOT: ${{ android.sdk.path }}
+          ANDROID_ARCH: arm
+          CI: 1
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: koreader-android-arm-apk
+          path: koreader-android-arm-*.apk
+          retention-days: 30
+
+      - name: Create Release (if tagged)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: koreader-android-arm-*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on PR with download link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const artifacts = fs.readdirSync('.').filter(f => f.startsWith('koreader-android-arm'));
+            if (artifacts.length > 0) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `✅ Android APK built successfully!\n\n📦 Download from the **Artifacts** section in this workflow run.\n\nAPK: \`${artifacts[0]}\``
+              });
+            }
