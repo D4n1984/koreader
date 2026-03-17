@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+AndroidManifest Integration for KoReader Widget
+
+This file contains the manifest entries required to register and configure
+the KoReader 3x2 Reading Progress Widget.
+
+Add these entries to your project's AndroidManifest.xml:
+
+1. Permissions (add to <manifest> element)
+2. Widget Provider (add to <application> element)
+3. Broadcast Receiver (add to <application> element)
+
+See INTEGRATION_GUIDE.md for detailed instructions.
+-->
+
+<!-- PERMISSIONS SECTION
+     Add these to <manifest> (after the <manifest> tag but before <application>):
+-->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<!--
+  - READ_EXTERNAL_STORAGE: Required to read KoReader data files from external storage
+  - Note: On Android 6.0+ (API 23+), this requires runtime permission request
+-->
+
+<!-- WIDGET PROVIDER SECTION
+     Add this to <application> element:
+-->
+<receiver
+    android:name="rocks.koreader.widget.KoReaderWidget"
+    android:label="KoReader Reading Progress"
+    android:icon="@mipmap/ic_launcher"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_provider" />
+</receiver>
+
+<!-- WIDGET UPDATE BROADCAST RECEIVER
+     Add this to <application> element for manual widget refresh:
+-->
+<receiver
+    android:name="rocks.koreader.widget.WidgetUpdateReceiver"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="rocks.koreader.widget.FORCE_UPDATE" />
+    </intent-filter>
+</receiver>
+
+<!--
+INTEGRATION CHECKLIST:
+[ ] Add 1 permission line to <manifest>
+[ ] Add 1 receiver element (widget provider) to <application>
+[ ] Add 1 receiver element (update broadcast) to <application>
+[ ] Ensure @xml/widget_provider points to platform/android/res/xml/widget_provider.xml
+[ ] Ensure android:name="rocks.koreader.widget.KoReaderWidget" matches Java package
+[ ] Build and test widget installation
+
+PACKAGE STRUCTURE:
+The Java files must be in the Android build source tree at:
+  rocks/koreader/widget/KoReaderWidget.java
+
+LAYOUT FILES:
+  platform/android/res/layout/widget_reading_progress.xml
+  platform/android/res/drawable/widget_slot_background.xml
+  platform/android/res/drawable/widget_preview.xml
+
+CONFIGURATION FILES:
+  platform/android/res/xml/widget_provider.xml
+
+See ../KoReaderWidget.java for the implementation.
+See RUNTIME_INTEGRATION.md for Lua integration points.
+-->

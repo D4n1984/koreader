@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AppWidgetProvider Configuration -->
+<appwidget-provider
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="300dp"
+    android:minHeight="300dp"
+    android:updatePeriodMillis="3600000"
+    android:initialLayout="@layout/widget_reading_progress"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen"
+    android:previewImage="@drawable/widget_preview"
+    android:previewLayout="@layout/widget_reading_progress"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:minResizeWidth="300dp"
+    android:minResizeHeight="300dp">
+    <!-- 
+        Widget Configuration Notes:
+        - updatePeriodMillis: 3600000ms = 1 hour. Adjustable based on user preference.
+        - minWidth/minHeight: Approximately 3x2 grid cells at standard density
+        - resizeMode: "none" - widget size is fixed (3x2)
+        - widgetCategory: "home_screen" for standard Android widgets
+        - targetCellWidth/Height: Explicit 3x2 grid dimensions
+        
+        To reduce update frequency (battery), increase updatePeriodMillis:
+        - 1 hour: 3600000ms (default)
+        - 6 hours: 21600000ms
+        - 24 hours: 86400000ms
+    -->
+</appwidget-provider>
