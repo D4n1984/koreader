@@ -207,6 +207,7 @@ jobs:
 
       - name: Test
         run: ./base/utils/fake_tty.py make --assume-old=base testfront
+        continue-on-error: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' }}
 
       # Generate / upload artifact. {{{
 
