@@ -11,9 +11,6 @@ on:
       - main
       - master
 
-env:
-  GRADLE_OPTS: -Xmx4096m -Dorg.gradle.jvmargs="-Xmx4096m"
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,79 +20,36 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history for git describe
-      
-      - name: Fetch all tags
-        run: git fetch --tags origin
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake bash cmake coreutils curl diffutils \
+            findutils g++ gcc gettext-dev git grep gzip libtool \
+            linux-headers make meson nasm ninja-build patch perl \
+            pkgconf unzip wget p7zip-full openjdk-17-jdk-headless
+
+      - name: Build Android APK (ARM)
+        run: |
+          # KoReader will automatically download NDK and SDK if not present
+          ./kodev release android-arm
         continue-on-error: true
-
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: adopt
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
-
-      - name: Install NDK
-        run: |
-          sdkmanager "ndk;25.2.9519653" "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Cache gradle dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/caches
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: gradle-${{ runner.os }}
-
-      - name: Build dependencies
-        run: |
-          make -C base/toolchain/build android-ndk
-        env:
-          ANDROID_NDK_HOME: ${{ android.ndk.path }}
-          ANDROID_SDK_ROOT: ${{ android.sdk.path }}
-
-      - name: Build APK (ARM)
-        run: |
-          # On feature branches, set a fallback version to avoid git describe failures
-          if [[ "${{ github.ref }}" != "refs/heads/main" && "${{ github.ref }}" != "refs/heads/master" ]]; then
-            export VERSION="widget-dev-$(date +%Y%m%d)"
-          fi
-          make TARGET=android update
-        continue-on-error: true
-        env:
-          ANDROID_NDK_HOME: ${{ android.ndk.path }}
-          ANDROID_SDK_ROOT: ${{ android.sdk.path }}
-          ANDROID_ARCH: arm
-          CI: 1
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: koreader-android-arm-apk
-          path: koreader-android-arm-*.apk
+          path: |
+            koreader-android-*-arm.apk
+            koreader-android-*-arm64.apk
           retention-days: 30
+          if-no-files-found: warn
 
       - name: Create Release (if tagged)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: koreader-android-arm-*.apk
+          files: koreader-android-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Comment on PR with download link
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const artifacts = fs.readdirSync('.').filter(f => f.startsWith('koreader-android-arm'));
-            if (artifacts.length > 0) {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `✅ Android APK built successfully!\n\n📦 Download from the **Artifacts** section in this workflow run.\n\nAPK: \`${artifacts[0]}\``
-              });
-            }
